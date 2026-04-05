@@ -1,0 +1,61 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  author?: string;
+  url: string;
+  category: string;
+  tags?: string[];
+}
+
+const {
+  title,
+  description,
+  image,
+  pubDate,
+  updatedDate,
+  author = 'ArtOnly',
+  url,
+  category,
+  tags = [],
+} = Astro.props;
+
+const siteUrl = 'https://artonly.io';
+const ogImage = image ? (image.startsWith('http') ? image : new URL(image, siteUrl).toString()) : `${siteUrl}/og-default.jpg`;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description,
+  image: [ogImage],
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate || pubDate).toISOString(),
+  author: {
+    '@type': 'Person',
+    name: author,
+    url: siteUrl,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'ArtOnly',
+    url: siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${siteUrl}/logo.png`,
+    },
+  },
+  url,
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': url,
+  },
+  articleSection: category,
+  keywords: tags.join(', '),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

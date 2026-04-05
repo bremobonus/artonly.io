@@ -1,0 +1,119 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import ArticleSchema from '../components/ArticleSchema.astro';
+
+export interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  author?: string;
+  category: string;
+  tags?: string[];
+  image?: string;
+  imageAlt?: string;
+  slug: string;
+}
+
+const {
+  title,
+  description,
+  pubDate,
+  updatedDate,
+  author = 'ArtOnly',
+  category,
+  tags = [],
+  image,
+  imageAlt,
+  slug,
+} = Astro.props;
+
+const articleUrl = `https://artonly.io/${slug}`;
+
+const formattedDate = pubDate.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={image}
+  imageAlt={imageAlt}
+  type="article"
+  pubDate={pubDate}
+  author={author}
+  showSchema={false}
+>
+  <ArticleSchema
+    title={title}
+    description={description}
+    image={image}
+    pubDate={pubDate}
+    updatedDate={updatedDate}
+    author={author}
+    url={articleUrl}
+    category={category}
+    tags={tags}
+  />
+
+  <article class="max-w-2xl mx-auto px-4 sm:px-6 py-12">
+
+    <!-- Category + Date -->
+    <div class="flex items-center gap-3 mb-6 text-xs uppercase tracking-widest text-ash">
+      <a href={`/${category}`} class="text-accent hover:underline font-semibold">{category}</a>
+      <span>—</span>
+      <time datetime={pubDate.toISOString()}>{formattedDate}</time>
+    </div>
+
+    <!-- Title -->
+    <h1 class="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-4">{title}</h1>
+
+    <!-- Description -->
+    <p class="text-lg text-ash leading-relaxed mb-8 font-serif italic">{description}</p>
+
+    <!-- Hero Image -->
+    {image && (
+      <figure class="mb-10 -mx-4 sm:-mx-6">
+        <img
+          src={image}
+          alt={imageAlt || title}
+          class="w-full aspect-video object-cover"
+          loading="eager"
+          decoding="async"
+        />
+      </figure>
+    )}
+
+    <!-- Author -->
+    <div class="flex items-center gap-2 mb-10 pb-10 border-b border-ink/10">
+      <span class="text-sm text-ash">By <strong class="text-ink font-medium">{author}</strong></span>
+    </div>
+
+    <!-- Article Body -->
+    <div class="prose prose-lg max-w-none
+      prose-headings:font-serif prose-headings:font-bold
+      prose-a:text-accent prose-a:no-underline hover:prose-a:underline
+      prose-img:rounded prose-img:w-full
+      prose-blockquote:border-l-accent prose-blockquote:font-serif prose-blockquote:italic
+    ">
+      <slot />
+    </div>
+
+    <!-- Tags -->
+    {tags.length > 0 && (
+      <div class="mt-12 pt-8 border-t border-ink/10">
+        <div class="flex flex-wrap gap-2">
+          {tags.map(tag => (
+            <span class="px-3 py-1 bg-ink/5 text-xs uppercase tracking-wider rounded-full text-ash">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+
+  </article>
+</BaseLayout>
