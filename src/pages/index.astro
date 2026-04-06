@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const sorted = allPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const featured = sorted.filter(p => p.data.featured).slice(0, 1)[0] || sorted[0];
+const recent = sorted.filter(p => p.slug !== featured?.slug).slice(0, 8);
+
+const artPosts = sorted.filter(p => p.data.category === 'art').slice(0, 3);
+const musicPosts = sorted.filter(p => p.data.category === 'music').slice(0, 3);
+const culturePosts = sorted.filter(p => p.data.category === 'culture').slice(0, 3);
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+---
+
+<BaseLayout
+  title="ArtOnly — Art, Music & Culture"
+  description="Independent coverage of art, music, and culture. Reviews, essays, and criticism from the front lines."
+>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+
+    <!-- Featured Post -->
+    {featured && (
+      <a href={`/${featured.slug}`} class="group block mb-14">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+          {featured.data.image && (
+            <div class="overflow-hidden aspect-video bg-ink/5">
+              <img
+                src={featured.data.image}
+                alt={featured.data.imageAlt || featured.data.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="eager"
+              />
+            </div>
+          )}
+          <div class={featured.data.image ? '' : 'md:col-span-2'}>
+            <div class="flex items-center gap-3 mb-4 text-xs uppercase tracking-widest">
+              <span class="text-accent font-semibold">{featured.data.category}</span>
+              <span class="text-ash">—</span>
+              <span class="text-ash">{formatDate(featured.data.pubDate)}</span>
+            </div>
+            <h2 class="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-4 group-hover:text-accent transition-colors">
+              {featured.data.title}
+            </h2>
+            <p class="text-ash leading-relaxed text-lg">{featured.data.description}</p>
+            <span class="inline-block mt-6 text-xs uppercase tracking-widest font-semibold text-accent border-b border-accent pb-0.5">
+              Read More
+            </span>
+          </div>
+        </div>
+      </a>
+    )}
+
+    <hr class="border-ink/10 mb-14" />
+
+    <!-- Category Sections -->
+    {[
+      { label: 'Art', slug: 'art', posts: artPosts },
+      { label: 'Music', slug: 'music', posts: musicPosts },
+      { label: 'Culture', slug: 'culture', posts: culturePosts },
+    ].map(({ label, slug, posts }) => posts.length > 0 && (
+      <section class="mb-14">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="font-serif text-2xl font-bold">{label}</h2>
+          <a href={`/${slug}`} class="text-xs uppercase tracking-widest text-ash hover:text-accent transition-colors">
+            All {label} →
+          </a>
+        </div>
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {posts.map(post => (
+            <a href={`/${post.slug}`} class="group">
+              {post.data.image && (
+                <div class="aspect-video overflow-hidden bg-ink/5 mb-4">
+                  <img
+                    src={post.data.image}
+                    alt={post.data.imageAlt || post.data.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div class="text-xs uppercase tracking-widest text-ash mb-2">
+                {formatDate(post.data.pubDate)}
+              </div>
+              <h3 class="font-serif font-bold text-lg leading-snug group-hover:text-accent transition-colors">
+                {post.data.title}
+              </h3>
+              <p class="text-ash text-sm mt-2 leading-relaxed line-clamp-2">{post.data.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <!-- Latest Posts Grid -->
+    {recent.length > 0 && (
+      <section>
+        <h2 class="font-serif text-2xl font-bold mb-8">Latest</h2>
+        <div class="divide-y divide-ink/10">
+          {recent.map(post => (
+            <a href={`/${post.slug}`} class="group flex items-start gap-6 py-6">
+              {post.data.image && (
+                <div class="flex-shrink-0 w-24 h-16 overflow-hidden bg-ink/5">
+                  <img
+                    src={post.data.image}
+                    alt={post.data.imageAlt || post.data.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-1 text-xs uppercase tracking-widest">
+                  <span class="text-accent font-semibold">{post.data.category}</span>
+                  <span class="text-ash">{formatDate(post.data.pubDate)}</span>
+                </div>
+                <h3 class="font-serif font-bold text-lg leading-snug group-hover:text-accent transition-colors truncate">
+                  {post.data.title}
+                </h3>
+                <p class="text-ash text-sm mt-1 line-clamp-1">{post.data.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+  </div>
+</BaseLayout>
