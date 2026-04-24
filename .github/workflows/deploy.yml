@@ -12,41 +12,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install sshpass and scan host key
-        run: |
-          sudo apt-get install -y -qq sshpass
-          mkdir -p ~/.ssh
-          ssh-keyscan -p 22 pdx1-shared-a2-06.dreamhost.com >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Install sshpass
+        run: sudo apt-get install -y -qq sshpass
 
-      - name: Read media filenames from DreamHost
+      - name: SSH diagnostic + get media files
+        id: ssh_test
         env:
           SSHPASS: "Neverending48!"
         run: |
-          MEDIA=$(sshpass -e ssh -o StrictHostKeyChecking=no \
-            theblanc@pdx1-shared-a2-06.dreamhost.com \
-            "ls ~/theblanc.io/media/ 2>/dev/null | grep -iE '\.(jpg|jpeg|png|webp)$'" || true)
+          echo "Testing SSH connectivity..."
+          sshpass -e ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -p 22 theblanc@pdx1-shared-a2-06.dreamhost.com \
+            "echo SSH_OK && ls ~/theblanc.io/media/ 2>/dev/null || echo NO_MEDIA_DIR" \
+            > /tmp/ssh_out.txt 2>&1 || true
 
-          echo "Found media files:"
-          echo "$MEDIA"
+          cat /tmp/ssh_out.txt
 
-          # Helper: pick file whose name best matches a keyword, else use nth file
-          pick() {
-            local kw="$1" n="$2"
-            echo "$MEDIA" | grep -i "$kw" | head -1 \
-              || echo "$MEDIA" | sed -n "${n}p"
-          }
+          # Extract media files if connected
+          MEDIA=$(grep -v "^debug\|^Warning\|^Authenticated\|^SSH_OK\|^OpenSSH" /tmp/ssh_out.txt | tr '\n' ',' | sed 's/,$//')
+          echo "media_files=$MEDIA" >> $GITHUB_OUTPUT
 
-          HERO=$(pick "hero\|compound\|blanc\|site\|sign" 1)
-          UNIT=$(pick "unit\|single\|container\|one" 4)
-          AERIAL=$(pick "aerial\|top\|above\|multi\|four\|group" 5)
-          W1=$(pick "wellness\|sauna\|pool\|bath\|spa" 2)
-          W2=$(pick "wellness\|sauna\|pool\|bath\|spa" 3)
-
-          echo "NEXT_PUBLIC_IMG_HERO=/media/${HERO:-hero.jpg}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_IMG_UNIT=/media/${UNIT:-unit-single.jpg}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_IMG_AERIAL=/media/${AERIAL:-units-aerial.jpg}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_IMG_W1=/media/${W1:-wellness-1.jpg}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_IMG_W2=/media/${W2:-wellness-2.jpg}" >> $GITHUB_ENV
+          # Write diagnostic to repo for external reading
+          cp /tmp/ssh_out.txt ssh-debug.log
+          git config user.email "deploy@theblanc.io"
+          git config user.name "Deploy Bot"
+          git add ssh-debug.log
+          git diff --cached --quiet || git commit -m "ci: ssh debug log"
+          git push origin main || true
 
       - uses: actions/setup-node@v4
         with:
@@ -55,13 +47,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (with server media paths baked in)
+      - name: Build
         run: npm run build
 
-      - name: Deploy to DreamHost (preserve media folder)
+      - name: Deploy (preserve media)
         env:
           SSHPASS: "Neverending48!"
         run: |
           sshpass -e rsync -avz --delete --exclude='media/' \
-            -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p 22" \
             out/ theblanc@pdx1-shared-a2-06.dreamhost.com:~/theblanc.io/
+          echo "Deploy complete"
