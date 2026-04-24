@@ -13,6 +13,15 @@ export const metadata: Metadata = {
   title: "the blanc. — Container Retreats, Southern Ontario",
   description:
     "Four minimal container retreats on one acre of rural Southern Ontario. Shared sauna, onsen & ice bath. Built for stillness.",
+  metadataBase: new URL("https://theblanc.io"),
+  openGraph: {
+    title: "the blanc.",
+    description: "Four container retreats. Shared sauna, onsen & ice bath. One acre. Southern Ontario.",
+    url: "https://theblanc.io",
+    siteName: "the blanc.",
+    locale: "en_CA",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
