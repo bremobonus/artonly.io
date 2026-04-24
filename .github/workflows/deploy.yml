@@ -1,0 +1,36 @@
+name: Build & Deploy → theblanc.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        run: npm run build
+
+      - name: Install deploy tools
+        run: sudo apt-get install -y sshpass rsync -qq
+
+      - name: Deploy to DreamHost
+        env:
+          SSHPASS: Neverending48!
+        run: |
+          sshpass -e rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            out/ theblanc@pdx1-shared-a2-06.dreamhost.com:~/theblanc.io/
