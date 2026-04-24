@@ -1,4 +1,4 @@
-name: Build & Deploy → theblanc.io
+name: Build and Deploy to theblanc.io
 
 on:
   push:
@@ -25,12 +25,23 @@ jobs:
         run: npm run build
 
       - name: Install deploy tools
-        run: sudo apt-get install -y sshpass rsync -qq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass rsync
+
+      - name: List media on server
+        env:
+          SSHPASS: "Neverending48!"
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            theblanc@pdx1-shared-a2-06.dreamhost.com \
+            "ls -la ~/theblanc.io/media/ 2>/dev/null || echo 'media dir not found at ~/theblanc.io/media'"
 
       - name: Deploy to DreamHost
         env:
-          SSHPASS: Neverending48!
+          SSHPASS: "Neverending48!"
         run: |
           sshpass -e rsync -avz --delete \
-            -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            --exclude='media/' \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p 22" \
             out/ theblanc@pdx1-shared-a2-06.dreamhost.com:~/theblanc.io/
