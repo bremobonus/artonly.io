@@ -6,7 +6,7 @@ export default function Home() {
       {/* HERO */}
       <section className="relative h-screen overflow-hidden bg-[#0C0C0C]">
         <img
-          src="/media/hero.jpg"
+          src={process.env.NEXT_PUBLIC_IMG_HERO || '/media/hero.jpg'}
           alt="the blanc compound at dusk"
           className="absolute inset-0 w-full h-full object-cover opacity-75"
         />
@@ -81,7 +81,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="order-2 md:order-1 aspect-[4/3] overflow-hidden bg-[#1A1A1A]">
               <img
-                src="/media/unit-single.jpg"
+                src={process.env.NEXT_PUBLIC_IMG_UNIT || '/media/unit-single.jpg'}
                 alt="container unit at dusk"
                 className="w-full h-full object-cover"
               />
@@ -120,7 +120,7 @@ export default function Home() {
         {/* Units aerial image */}
         <div className="aspect-[21/9] overflow-hidden">
           <img
-            src="/media/units-aerial.jpg"
+            src={process.env.NEXT_PUBLIC_IMG_AERIAL || '/media/units-aerial.jpg'}
             alt="aerial view of the blanc units"
             className="w-full h-full object-cover"
           />
@@ -137,14 +137,14 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-1 mb-1">
             <div className="aspect-square overflow-hidden bg-[#C8C3BB]">
               <img
-                src="/media/wellness-1.jpg"
+                src={process.env.NEXT_PUBLIC_IMG_W1 || '/media/wellness-1.jpg'}
                 alt="steam sauna and onsen"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="aspect-square overflow-hidden bg-[#C8C3BB]">
               <img
-                src="/media/wellness-2.jpg"
+                src={process.env.NEXT_PUBLIC_IMG_W2 || '/media/wellness-2.jpg'}
                 alt="outdoor plunge pools"
                 className="w-full h-full object-cover"
               />

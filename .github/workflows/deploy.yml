@@ -10,41 +10,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - name: Install sshpass and scan host key
+        run: |
+          sudo apt-get install -y -qq sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 22 pdx1-shared-a2-06.dreamhost.com >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Read media filenames from DreamHost
+        env:
+          SSHPASS: "Neverending48!"
+        run: |
+          MEDIA=$(sshpass -e ssh -o StrictHostKeyChecking=no \
+            theblanc@pdx1-shared-a2-06.dreamhost.com \
+            "ls ~/theblanc.io/media/ 2>/dev/null | grep -iE '\.(jpg|jpeg|png|webp)$'" || true)
+
+          echo "Found media files:"
+          echo "$MEDIA"
+
+          # Helper: pick file whose name best matches a keyword, else use nth file
+          pick() {
+            local kw="$1" n="$2"
+            echo "$MEDIA" | grep -i "$kw" | head -1 \
+              || echo "$MEDIA" | sed -n "${n}p"
+          }
+
+          HERO=$(pick "hero\|compound\|blanc\|site\|sign" 1)
+          UNIT=$(pick "unit\|single\|container\|one" 4)
+          AERIAL=$(pick "aerial\|top\|above\|multi\|four\|group" 5)
+          W1=$(pick "wellness\|sauna\|pool\|bath\|spa" 2)
+          W2=$(pick "wellness\|sauna\|pool\|bath\|spa" 3)
+
+          echo "NEXT_PUBLIC_IMG_HERO=/media/${HERO:-hero.jpg}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_IMG_UNIT=/media/${UNIT:-unit-single.jpg}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_IMG_AERIAL=/media/${AERIAL:-units-aerial.jpg}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_IMG_W1=/media/${W1:-wellness-1.jpg}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_IMG_W2=/media/${W2:-wellness-2.jpg}" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: List media files on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: pdx1-shared-a2-06.dreamhost.com
-          username: theblanc
-          password: "Neverending48!"
-          port: 22
-          script: |
-            echo "=== Media files on server ==="
-            ls -la ~/theblanc.io/media/ 2>/dev/null || echo "No media dir found"
-            echo "=== Web root ==="
-            ls -la ~/theblanc.io/ 2>/dev/null || echo "No theblanc.io dir"
-
-      - name: Build static export
+      - name: Build (with server media paths baked in)
         run: npm run build
 
-      - name: Deploy files to DreamHost
-        uses: burnett01/rsync-deployments@7.0.1
-        with:
-          switches: -avzr --delete --exclude='media/'
-          path: out/
-          remote_path: ~/theblanc.io/
-          remote_host: pdx1-shared-a2-06.dreamhost.com
-          remote_port: 22
-          remote_user: theblanc
-          remote_password: "Neverending48!"
+      - name: Deploy to DreamHost (preserve media folder)
+        env:
+          SSHPASS: "Neverending48!"
+        run: |
+          sshpass -e rsync -avz --delete --exclude='media/' \
+            -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            out/ theblanc@pdx1-shared-a2-06.dreamhost.com:~/theblanc.io/
